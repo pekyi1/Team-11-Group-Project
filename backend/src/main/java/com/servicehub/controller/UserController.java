@@ -1,41 +1,29 @@
 package com.servicehub.controller;
 
-import com.servicehub.dto.request.LoginRequest;
-import com.servicehub.dto.request.RefreshTokenRequest;
-import com.servicehub.dto.request.RegisterRequest;
 import com.servicehub.exception.ResourceNotFoundException;
 import com.servicehub.repository.UserRepository;
 import com.servicehub.service.AuthService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-public class AuthController {
+public class UserController {
 
     private final AuthService authService;
     private final UserRepository userRepository;
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refreshToken(request.getRefreshToken()));
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllUsers(Pageable pageable) {
+        return ResponseEntity.ok(authService.getAllUsers(pageable));
     }
 
     @GetMapping("/me")

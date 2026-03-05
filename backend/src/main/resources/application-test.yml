@@ -15,6 +15,7 @@ spring:
 
 jwt:
   secret: test-secret-key-minimum-256-bits-for-hmac-sha256-algorithm
+  refresh-expiration-ms: 604800000
 
 mail:
   enabled: false
