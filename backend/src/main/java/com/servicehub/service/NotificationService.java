@@ -5,14 +5,16 @@ import com.servicehub.model.NotificationLog;
 import com.servicehub.model.ServiceRequest;
 import com.servicehub.model.User;
 import com.servicehub.repository.NotificationLogRepository;
+import com.servicehub.repository.ServiceRequestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.event.EventListener;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -23,6 +25,7 @@ public class NotificationService {
 
     private final JavaMailSender mailSender;
     private final NotificationLogRepository notificationLogRepository;
+    private final ServiceRequestRepository serviceRequestRepository;
 
     @Value("${mail.from:noreply@servicehub.local}")
     private String fromAddress;
@@ -34,11 +37,14 @@ public class NotificationService {
     private String frontendUrl;
 
     @Async
-    @EventListener
+    @TransactionalEventListener
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, readOnly = true)
     public void handleServiceRequestEvent(ServiceRequestEvent event) {
         if (!"true".equalsIgnoreCase(mailEnabled)) return;
 
-        ServiceRequest request = event.getServiceRequest();
+        // Re-fetch the entity in a new transaction to ensure lazy associations are accessible
+        ServiceRequest request = serviceRequestRepository.findById(event.getServiceRequest().getId()).orElse(null);
+        if (request == null) return;
         String eventType = event.getEventType();
 
         switch (eventType) {

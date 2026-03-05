@@ -147,6 +147,10 @@ public class ServiceRequestService {
         ServiceRequest serviceRequest = serviceRequestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service request not found with id: " + id));
 
+        // Eagerly load lazy associations to avoid Hibernate session issues
+        Long categoryId = serviceRequest.getCategory() != null ? serviceRequest.getCategory().getId() : null;
+        Priority requestPriority = serviceRequest.getPriority();
+
         User actor = userRepository.findById(actorId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + actorId));
 
@@ -188,8 +192,7 @@ public class ServiceRequestService {
             serviceRequest.setResolutionSlaMet(null);
             serviceRequest.setResponseSlaMet(null);
             serviceRequest.setRespondedAt(null);
-            slaPolicyRepository.findByCategoryIdAndPriority(
-                    serviceRequest.getCategory().getId(), serviceRequest.getPriority())
+            slaPolicyRepository.findByCategoryIdAndPriority(categoryId, requestPriority)
                     .ifPresent(sla -> {
                         serviceRequest.setResponseSlaDeadline(now.plusMinutes(sla.getResponseTimeMinutes()));
                         serviceRequest.setResolutionSlaDeadline(now.plusMinutes(sla.getResolutionTimeMinutes()));
