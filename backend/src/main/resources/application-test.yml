@@ -1,0 +1,20 @@
+# =============================================================================
+# ServiceHub — Test Profile
+# =============================================================================
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/servicehub_test
+    username: postgres
+    password: postgres
+  flyway:
+    clean-disabled: false
+  mail:
+    host: localhost
+    port: 1025
+
+jwt:
+  secret: test-secret-key-minimum-256-bits-for-hmac-sha256-algorithm
+
+mail:
+  enabled: false

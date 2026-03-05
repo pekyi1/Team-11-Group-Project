@@ -1,0 +1,13 @@
+# =============================================================================
+# ServiceHub — Development Profile
+# =============================================================================
+
+spring:
+  jpa:
+    show-sql: true
+
+# Show full health details in dev
+management:
+  endpoint:
+    health:
+      show-details: always
