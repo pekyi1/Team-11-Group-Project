@@ -1,0 +1,5 @@
+-- =============================================================================
+-- DEPRECATED: This file is no longer used.
+-- Seed data is now managed via Flyway migration: db/migration/V2__seed_data.sql
+-- This file is kept empty to prevent Spring's sql.init from running stale data.
+-- =============================================================================

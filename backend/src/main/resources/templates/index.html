@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>ServiceHub Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark px-4">
+    <span class="navbar-brand">ServiceHub</span>
+    <div>
+        <a href="/dashboard" class="btn btn-outline-light btn-sm me-2">Dashboard</a>
+        <a href="/swagger-ui.html" class="btn btn-outline-light btn-sm">API Docs</a>
+    </div>
+</nav>
+<div class="container mt-4">
+    <h1>Welcome to ServiceHub</h1>
+    <p>Internal service request management system.</p>
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-bg-primary mb-3"><div class="card-body">
+                <h5 class="card-title">Submit a Request</h5>
+                <p class="card-text">Create IT support, HR, or facilities requests.</p>
+                <a href="/swagger-ui.html#/service-request-controller/create" class="btn btn-light btn-sm">Submit via API</a>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-success mb-3"><div class="card-body">
+                <h5 class="card-title">Track Requests</h5>
+                <p class="card-text">Monitor status and SLA compliance.</p>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-info mb-3"><div class="card-body">
+                <h5 class="card-title">Analytics</h5>
+                <p class="card-text">View resolution metrics and trends.</p>
+            </div></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

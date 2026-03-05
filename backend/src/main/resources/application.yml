@@ -1,0 +1,113 @@
+# =============================================================================
+# ServiceHub — Application Configuration
+# =============================================================================
+# All sensitive values are externalized via environment variables.
+# Profile-specific overrides: application-{dev,test,prod}.yml
+# =============================================================================
+
+spring:
+  application:
+    name: servicehub
+
+  # --- Database ---
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/servicehub}
+    username: ${SPRING_DATASOURCE_USERNAME:servicehub_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  # --- JPA / Hibernate ---
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # --- Disable legacy SQL init (Flyway handles everything) ---
+  sql:
+    init:
+      mode: never
+
+  # --- Flyway (database migrations) ---
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  # --- Mail ---
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
+  # --- File uploads ---
+  servlet:
+    multipart:
+      max-file-size: ${FILE_MAX_SIZE_MB:5}MB
+      max-request-size: 25MB
+
+  # --- Async (for event-driven email notifications) ---
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 8
+        queue-capacity: 100
+      thread-name-prefix: async-
+
+# --- Server ---
+server:
+  port: 8080
+
+# --- JWT ---
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+
+# --- CORS ---
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+# --- File storage ---
+file:
+  upload-dir: ${FILE_UPLOAD_DIR:/data/uploads}
+  max-size-mb: ${FILE_MAX_SIZE_MB:5}
+  max-per-request: ${FILE_MAX_PER_REQUEST:5}
+
+# --- Email notifications ---
+mail:
+  from: ${MAIL_FROM:noreply@servicehub.local}
+  enabled: ${MAIL_ENABLED:true}
+
+# --- Frontend URL (for email links) ---
+frontend:
+  url: ${FRONTEND_URL:http://localhost:3000}
+
+# --- Actuator ---
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# --- API Docs ---
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /api/docs

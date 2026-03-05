@@ -1,0 +1,18 @@
+# =============================================================================
+# ServiceHub — Production Profile
+# =============================================================================
+# All values MUST come from environment variables in production.
+# =============================================================================
+
+spring:
+  jpa:
+    show-sql: false
+  mail:
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
