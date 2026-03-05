@@ -72,6 +72,7 @@ public class ServiceRequest {
     private LocalDateTime closedAt;
 
     @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
     private Boolean isDeleted = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)

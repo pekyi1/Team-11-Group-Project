@@ -3,11 +3,14 @@
 # =============================================================================
 # Stage 1: Dependencies (cached layer — only re-runs when package.json changes)
 # Stage 2: Build (next build — produces optimized production output)
-# Stage 3: Runtime (Node Alpine — serves the built app)
+# Stage 3: Runtime (Node slim — serves the built app)
+#
+# Uses Debian-slim images (not Alpine) for cross-platform compatibility
+# with both amd64 (Linux) and arm64 (Apple Silicon Mac) architectures.
 # =============================================================================
 
 # --- Stage 1: Install dependencies ---
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 
 WORKDIR /app
 
@@ -23,7 +26,7 @@ RUN \
   fi
 
 # --- Stage 2: Build ---
-FROM node:20-alpine AS build
+FROM node:20-slim AS build
 
 WORKDIR /app
 
@@ -42,12 +45,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # --- Stage 3: Runtime ---
-FROM node:20-alpine AS runtime
+FROM node:20-slim AS runtime
 
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -S servicehub && adduser -S servicehub -G servicehub
+RUN groupadd -r servicehub && useradd -r -g servicehub servicehub
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Copy only what's needed to run (not source code or node_modules bloat)
 COPY --from=build /app/public ./public
@@ -67,6 +73,6 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD wget -qO- http://0.0.0.0:3000 || exit 1
+  CMD curl -f http://localhost:3000 || exit 1
 
 CMD ["node", "server.js"]

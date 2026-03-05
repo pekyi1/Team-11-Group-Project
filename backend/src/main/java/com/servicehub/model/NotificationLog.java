@@ -29,9 +29,11 @@ public class NotificationLog {
     private String subject;
 
     @Column(nullable = false, length = 20)
+    @Builder.Default
     private String status = "PENDING";
 
     @Column(name = "retry_count", nullable = false)
+    @Builder.Default
     private Integer retryCount = 0;
 
     @Column(name = "last_error", columnDefinition = "TEXT")
