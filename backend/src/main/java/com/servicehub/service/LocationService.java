@@ -22,12 +22,14 @@ public class LocationService {
 
     private final LocationRepository locationRepository;
 
+    @Transactional(readOnly = true)
     public List<LocationResponse> getAllLocations() {
         return locationRepository.findByIsActiveTrue().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public LocationResponse getLocationById(Long id) {
         Location location = locationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Location not found with id: " + id));

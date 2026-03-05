@@ -31,12 +31,14 @@ public class DepartmentService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
 
+    @Transactional(readOnly = true)
     public List<DepartmentResponse> getAllDepartments() {
         return departmentRepository.findAll().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public DepartmentResponse getDepartmentById(Long id) {
         Department department = departmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + id));
@@ -99,6 +101,7 @@ public class DepartmentService {
         log.info("Department soft-deleted: {}", department.getName());
     }
 
+    @Transactional(readOnly = true)
     public List<UserResponse> getAgentsInDepartment(Long departmentId) {
         departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + departmentId));

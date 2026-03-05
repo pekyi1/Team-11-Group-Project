@@ -106,12 +106,14 @@ public class ServiceRequestService {
         return toResponse(savedRequest);
     }
 
+    @Transactional(readOnly = true)
     public ServiceRequestResponse getRequestById(Long id) {
         ServiceRequest request = serviceRequestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service request not found with id: " + id));
         return toResponse(request);
     }
 
+    @Transactional(readOnly = true)
     public Page<ServiceRequestResponse> getAllRequests(Pageable pageable, Long categoryId,
             String priority, String status, Long locationId, UUID requesterId, UUID assignedAgentId) {
         // TODO: Implement filtering with JPA Specifications for categoryId, priority, status, locationId, requesterId, assignedAgentId
@@ -282,6 +284,7 @@ public class ServiceRequestService {
         return toResponse(serviceRequest);
     }
 
+    @Transactional(readOnly = true)
     public List<StatusHistoryResponse> getRequestHistory(Long id) {
         serviceRequestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service request not found with id: " + id));

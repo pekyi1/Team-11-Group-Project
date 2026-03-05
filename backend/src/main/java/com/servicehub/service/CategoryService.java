@@ -25,18 +25,21 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final DepartmentRepository departmentRepository;
 
+    @Transactional(readOnly = true)
     public List<CategoryResponse> getAllCategories() {
         return categoryRepository.findByIsActiveTrue().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<CategoryResponse> getCategoriesByDepartment(Long departmentId) {
         return categoryRepository.findByDepartmentIdAndIsActiveTrue(departmentId).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));

@@ -7,6 +7,7 @@ import com.servicehub.repository.ServiceRequestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class DashboardService {
 
     private final ServiceRequestRepository serviceRequestRepository;
 
+    @Transactional(readOnly = true)
     public DashboardSummaryResponse getSummary() {
         long openCount = serviceRequestRepository.countByStatus(RequestStatus.OPEN);
         long assignedCount = serviceRequestRepository.countByStatus(RequestStatus.ASSIGNED);

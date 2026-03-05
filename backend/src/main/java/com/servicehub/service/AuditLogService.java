@@ -42,11 +42,13 @@ public class AuditLogService {
         log.debug("Audit log created: {} on {} {}", action, entityType, entityId);
     }
 
+    @Transactional(readOnly = true)
     public Page<AuditLogResponse> getAuditLogs(Pageable pageable) {
         return auditLogRepository.findAll(pageable)
                 .map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public Page<AuditLogResponse> getAuditLogsByEntity(String entityType, String entityId, Pageable pageable) {
         return auditLogRepository.findByEntityTypeAndEntityId(entityType, entityId, pageable)
                 .map(this::toResponse);

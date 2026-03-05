@@ -27,6 +27,7 @@ public class SlaPolicyService {
     private final SlaPolicyRepository slaPolicyRepository;
     private final CategoryRepository categoryRepository;
 
+    @Transactional(readOnly = true)
     public List<SlaPolicyResponse> getAllPolicies() {
         return slaPolicyRepository.findAll().stream()
                 .map(this::toResponse)

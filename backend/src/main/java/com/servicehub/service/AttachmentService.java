@@ -131,12 +131,14 @@ public class AttachmentService {
         return toResponse(attachment);
     }
 
+    @Transactional(readOnly = true)
     public List<AttachmentResponse> getAttachments(Long requestId) {
         return attachmentRepository.findByRequestIdAndIsDeletedFalse(requestId).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public Resource downloadAttachment(Long requestId, Long attachmentId) {
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment not found with id: " + attachmentId));
