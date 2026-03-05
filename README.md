@@ -130,11 +130,21 @@ All endpoints are prefixed with `/api/v1`. Protected endpoints require a `Bearer
 
 ### Authentication
 
-| Method | Endpoint               | Auth     | Description              |
-|--------|------------------------|----------|--------------------------|
-| POST   | /api/v1/auth/register  | Public   | Register a new user      |
-| POST   | /api/v1/auth/login     | Public   | Login, returns JWT token |
-| GET    | /api/v1/auth/me        | Required | Get current user profile |
+| Method | Endpoint               | Auth     | Description                          |
+|--------|------------------------|----------|--------------------------------------|
+| POST   | /api/v1/auth/register  | Public   | Register a new user                  |
+| POST   | /api/v1/auth/login     | Public   | Login, returns access + refresh token|
+| POST   | /api/v1/auth/refresh   | Public   | Refresh token rotation               |
+| GET    | /api/v1/auth/me        | Required | Get current user profile             |
+
+### Users
+
+| Method | Endpoint                                     | Auth     | Description                    |
+|--------|----------------------------------------------|----------|--------------------------------|
+| GET    | /api/v1/users                                | ADMIN    | List all users (paginated)     |
+| GET    | /api/v1/users/me                             | Required | Get current user profile       |
+| GET    | /api/v1/users/me/notification-preferences    | Required | Get notification preferences   |
+| PUT    | /api/v1/users/me/notification-preferences    | Required | Update notification preferences|
 
 ### Locations
 
@@ -204,6 +214,13 @@ All endpoints are prefixed with `/api/v1`. Protected endpoints require a `Bearer
 |--------|--------------------------------|----------|----------------------------|
 | GET    | /api/v1/dashboard/summary      | Required | Counts, SLA compliance     |
 
+### Notification Logs (Admin)
+
+| Method | Endpoint                                     | Auth  | Description                |
+|--------|----------------------------------------------|-------|----------------------------|
+| GET    | /api/v1/admin/notification-logs              | ADMIN | Paginated notification logs|
+| POST   | /api/v1/admin/notification-logs/{id}/retry   | ADMIN | Retry a failed notification|
+
 ### Audit Logs (Admin)
 
 | Method | Endpoint                       | Auth  | Description               |
@@ -254,6 +271,8 @@ Each request gets response and resolution deadlines based on its category + prio
 - **Response SLA** — met when status moves to `IN_PROGRESS`
 - **Resolution SLA** — met when status moves to `RESOLVED`
 - Reopening a request (`RESOLVED → OPEN`) resets SLA deadlines
+- **Scheduled monitoring** (every 5 min) detects breaches and sends 75% warnings
+- Email alerts sent to assigned agents on SLA warning/breach
 
 ## Project Structure
 
@@ -261,22 +280,25 @@ Each request gets response and resolution deadlines based on its category + prio
 4-ServiceHub/
 ├── backend/
 │   ├── src/main/java/com/servicehub/
-│   │   ├── config/          # Security, JWT, CORS configuration
-│   │   ├── controller/      # REST controllers (9 controllers)
+│   │   ├── config/          # Security, JWT, CORS, CorrelationId filter
+│   │   ├── controller/      # REST controllers (11 controllers)
 │   │   ├── dto/
-│   │   │   ├── request/     # Request DTOs (14 files)
-│   │   │   └── response/    # Response DTOs (13 files)
+│   │   │   ├── request/     # Request DTOs (15 files)
+│   │   │   └── response/    # Response DTOs (14 files)
+│   │   ├── event/           # Domain events (ServiceRequestEvent)
 │   │   ├── exception/       # Custom exceptions + GlobalExceptionHandler
 │   │   ├── model/           # JPA entities (10 entities)
 │   │   │   └── enums/       # Role, RequestStatus, Priority
-│   │   ├── repository/      # Spring Data JPA repositories (10 repos)
-│   │   └── service/         # Business logic (9 services)
+│   │   ├── repository/      # Spring Data JPA repositories (11 repos)
+│   │   │   └── specification/  # JPA Specifications for dynamic filtering
+│   │   └── service/         # Business logic (12 services)
 │   ├── src/main/resources/
 │   │   ├── db/migration/    # Flyway SQL migrations (V1, V2, V3)
-│   │   ├── application.yml  # Main config (externalized secrets)
-│   │   └── application-{dev,test,prod}.yml
+│   │   └── application.yml  # Main config (externalized secrets)
+│   ├── mvnw                 # Maven wrapper (no Maven install needed)
 │   ├── Dockerfile
-│   └── pom.xml
+│   ├── pom.xml
+│   └── README.md            # Backend developer guide
 ├── frontend/
 │   ├── src/app/             # Next.js App Router pages
 │   ├── Dockerfile
@@ -302,7 +324,8 @@ Key variables:
 | DB_USERNAME             | servicehub_app                   | Database user              |
 | DB_PASSWORD             | changeme_use_strong_password     | Database password          |
 | JWT_SECRET              | (none — must be set)             | JWT signing key            |
-| JWT_EXPIRATION_MS       | 3600000 (1 hour)                 | Token expiry               |
+| JWT_EXPIRATION_MS       | 3600000 (1 hour)                 | Access token expiry        |
+| JWT_REFRESH_EXPIRATION_MS | 604800000 (7 days)             | Refresh token expiry       |
 | CORS_ALLOWED_ORIGINS    | http://localhost:3000            | Allowed CORS origins       |
 | MAIL_HOST               | mailhog                          | SMTP server                |
 | MAIL_PORT               | 1025                             | SMTP port                  |
@@ -319,6 +342,25 @@ Key variables:
 - To reset the database: `docker compose down -v && docker compose up --build`
 - Flyway runs automatically on API startup — no manual migration needed
 
+### Local Development (Recommended for Backend)
+
+Instead of rebuilding Docker on every change, run the API locally and only Dockerize dependencies:
+
+```bash
+# Start only Postgres + MailHog
+docker compose up postgres mailhog -d
+
+# Run API locally (from backend/ directory)
+cd backend
+SPRING_DATASOURCE_PASSWORD=changeme_use_strong_password \
+JWT_SECRET=changeme_generate_a_256bit_secret_key_here_minimum_32_characters \
+FILE_UPLOAD_DIR=/tmp/servicehub-uploads \
+MAIL_HOST=localhost \
+./mvnw spring-boot:run
+```
+
+See `backend/README.md` for the full backend developer guide.
+
 ## Roles & Permissions
 
 | Role  | Capabilities                                                  |
@@ -329,25 +371,33 @@ Key variables:
 
 ## Implementation Status
 
-The backend CRUD layer and core workflow are implemented. The following items from the project instructions are **not yet implemented** and are expected to be built by the respective team members:
+### Implemented
+
+| Feature | Details |
+|---------|---------|
+| Core CRUD API | Service requests, departments, categories, locations, SLA policies, attachments, audit logs |
+| JWT Authentication | Access tokens (1h) + refresh tokens (7d) with `POST /api/v1/auth/refresh` |
+| User Management API | `GET /api/v1/users` (admin), `GET /api/v1/users/me` |
+| Notification Preferences | `GET/PUT /api/v1/users/me/notification-preferences` |
+| Email Notifications | Async event-driven emails via Spring Events, 9 event types, idempotent via `event_id` |
+| Notification Logs API | `GET /api/v1/admin/notification-logs`, `POST .../retry` |
+| Notification Retry Job | Scheduled (every 5 min), max 3 retries for failed emails |
+| SLA Breach Detection | Scheduled job (every 5 min) detects breached SLA deadlines |
+| SLA Warning Notifications | Alerts at 75% SLA consumption |
+| Fine-grained RBAC | `@PreAuthorize` on admin endpoints, method-level security |
+| Correlation ID | `X-Correlation-ID` header on all requests, included in error responses |
+| Request Filtering | JPA Specifications: `?categoryId=&priority=&status=&locationId=&requesterId=&assignedAgentId=` |
+| Auto-Routing | Intelligent agent assignment by department, location preference, and workload |
+| Service Request Workflow | Full status machine: OPEN → ASSIGNED → IN_PROGRESS → RESOLVED → CLOSED |
+| Dashboard Summary | `GET /api/v1/dashboard/summary` — counts and SLA compliance |
 
 ### Not Yet Implemented
 
 | Feature | Owner | Details |
 |---------|-------|---------|
-| JWT Refresh Token | Backend C | `POST /api/v1/auth/refresh` — refresh token rotation; currently only access tokens are issued |
-| User Management API | Backend C | `GET /api/v1/users` (list users, ADMIN only); `GET /api/v1/users/me` (currently at `/api/v1/auth/me`) |
-| Notification Preferences API | Backend C | `GET/PUT /api/v1/users/me/notification-preferences` — manage per-user email opt-out settings |
-| Notification Logs API | Backend C | `GET /api/v1/admin/notification-logs`, `POST .../retry` — admin email delivery monitoring |
-| Email Notification Service | Backend B | Async event-driven emails (Spring Events + `@Async @EventListener`); HTML templates; retry with exponential backoff; idempotent via `event_id` |
-| SLA Breach Detection Job | Backend B | Scheduled job (every 5 min) to detect breached SLA deadlines and trigger alerts |
-| SLA Warning Notifications | Backend B | Alert at 75% SLA consumption |
 | Dashboard: SLA Compliance | Backend C | `GET /api/v1/dashboard/sla-compliance` — compliance rates by category/priority/agent |
 | Dashboard: Volume | Backend C | `GET /api/v1/dashboard/volume` — request volumes over time |
 | Dashboard: Resolution Times | Backend C | `GET /api/v1/dashboard/resolution-times` — avg/median/P95 resolution times |
-| Fine-grained RBAC | Backend C | `@PreAuthorize` annotations — users see own requests only, agents see department only, etc. |
-| Correlation ID | Backend C | Add `correlationId` to all error responses and log entries for request tracing |
-| Request Filtering | Backend A | JPA Specifications for filtering requests by categoryId, priority, status, locationId, requesterId, assignedAgentId |
 | Next.js Frontend | All Backend | Full frontend application (login, request forms, dashboards, admin pages, etc.) |
 | Analytics Pipeline | Data Eng | Python ETL, sample data generator, trend analysis |
 | Playwright/REST Assured Tests | QA | API integration tests and UI end-to-end tests |
