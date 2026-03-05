@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -30,17 +31,20 @@ public class DepartmentController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createDepartment(@Valid @RequestBody CreateDepartmentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(departmentService.createDepartment(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateDepartment(@PathVariable Long id,
                                               @Valid @RequestBody UpdateDepartmentRequest request) {
         return ResponseEntity.ok(departmentService.updateDepartment(id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteDepartment(@PathVariable Long id) {
         departmentService.deleteDepartment(id);
         return ResponseEntity.noContent().build();
@@ -52,12 +56,14 @@ public class DepartmentController {
     }
 
     @PostMapping("/{id}/agents")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> assignAgentToDepartment(@PathVariable Long id,
                                                      @Valid @RequestBody AssignAgentRequest request) {
         return ResponseEntity.ok(departmentService.assignAgentToDepartment(id, request.getAgentId()));
     }
 
     @DeleteMapping("/{id}/agents/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> removeAgentFromDepartment(@PathVariable Long id,
                                                           @PathVariable UUID userId) {
         departmentService.removeAgentFromDepartment(id, userId);

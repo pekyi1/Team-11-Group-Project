@@ -60,6 +60,11 @@ public class GlobalExceptionHandler {
         body.put("path", request.getRequestURI());
         body.put("fieldErrors", fieldErrors);
 
+        String correlationId = (String) request.getAttribute("correlationId");
+        if (correlationId != null) {
+            body.put("correlationId", correlationId);
+        }
+
         return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
@@ -78,6 +83,12 @@ public class GlobalExceptionHandler {
         body.put("error", error);
         body.put("message", message);
         body.put("path", request.getRequestURI());
+
+        String correlationId = (String) request.getAttribute("correlationId");
+        if (correlationId != null) {
+            body.put("correlationId", correlationId);
+        }
+
         return new ResponseEntity<>(body, status);
     }
 }

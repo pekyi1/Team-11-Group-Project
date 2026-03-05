@@ -13,13 +13,18 @@ import com.servicehub.model.*;
 import com.servicehub.model.enums.Priority;
 import com.servicehub.model.enums.RequestStatus;
 import com.servicehub.model.enums.Role;
+import com.servicehub.event.ServiceRequestEvent;
 import com.servicehub.repository.*;
+import com.servicehub.repository.specification.ServiceRequestSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.time.Year;
@@ -38,6 +43,7 @@ public class ServiceRequestService {
     private final SlaPolicyRepository slaPolicyRepository;
     private final StatusHistoryRepository statusHistoryRepository;
     private final LocationRepository locationRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final Map<RequestStatus, Set<RequestStatus>> ALLOWED_TRANSITIONS;
 
@@ -103,6 +109,14 @@ public class ServiceRequestService {
         autoAssignAgent(savedRequest, requester);
 
         log.info("Service request created: {}", referenceNumber);
+
+        // Publish REQUEST_CREATED event
+        eventPublisher.publishEvent(new ServiceRequestEvent(this, savedRequest, "REQUEST_CREATED", requester, "Service request created"));
+        // If auto-assigned, also publish REQUEST_ASSIGNED
+        if (savedRequest.getAssignedAgent() != null) {
+            eventPublisher.publishEvent(new ServiceRequestEvent(this, savedRequest, "REQUEST_ASSIGNED", requester, "Auto-assigned to agent"));
+        }
+
         return toResponse(savedRequest);
     }
 
@@ -116,9 +130,16 @@ public class ServiceRequestService {
     @Transactional(readOnly = true)
     public Page<ServiceRequestResponse> getAllRequests(Pageable pageable, Long categoryId,
             String priority, String status, Long locationId, UUID requesterId, UUID assignedAgentId) {
-        // TODO: Implement filtering with JPA Specifications for categoryId, priority, status, locationId, requesterId, assignedAgentId
-        return serviceRequestRepository.findAll(pageable)
-                .map(this::toResponse);
+        Specification<ServiceRequest> spec = ServiceRequestSpecification.notDeleted();
+
+        if (categoryId != null) spec = spec.and(ServiceRequestSpecification.hasCategoryId(categoryId));
+        if (priority != null) spec = spec.and(ServiceRequestSpecification.hasPriority(priority));
+        if (status != null) spec = spec.and(ServiceRequestSpecification.hasStatus(status));
+        if (locationId != null) spec = spec.and(ServiceRequestSpecification.hasLocationId(locationId));
+        if (requesterId != null) spec = spec.and(ServiceRequestSpecification.hasRequesterId(requesterId));
+        if (assignedAgentId != null) spec = spec.and(ServiceRequestSpecification.hasAssignedAgentId(assignedAgentId));
+
+        return serviceRequestRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     @Transactional
@@ -187,6 +208,21 @@ public class ServiceRequestService {
 
         ServiceRequest saved = serviceRequestRepository.save(serviceRequest);
         log.info("Service request {} status updated: {} -> {}", saved.getReferenceNumber(), fromStatus, newStatus);
+
+        // Publish status change events
+        String eventType = switch (newStatus) {
+            case IN_PROGRESS -> "STATUS_IN_PROGRESS";
+            case RESOLVED -> "STATUS_RESOLVED";
+            case CLOSED -> "STATUS_CLOSED";
+            default -> null;
+        };
+        if (currentStatus == RequestStatus.RESOLVED && newStatus == RequestStatus.OPEN) {
+            eventType = "REQUEST_REOPENED";
+        }
+        if (eventType != null) {
+            eventPublisher.publishEvent(new ServiceRequestEvent(this, saved, eventType, actor, request.getComment()));
+        }
+
         return toResponse(saved);
     }
 
@@ -243,6 +279,10 @@ public class ServiceRequestService {
                 serviceRequest.getReferenceNumber(),
                 previousAgent != null ? previousAgent.getFullName() : "none",
                 targetAgent.getFullName());
+
+        // Publish TICKET_TRANSFERRED event
+        eventPublisher.publishEvent(new ServiceRequestEvent(this, serviceRequest, "TICKET_TRANSFERRED", actor, request.getReason(), previousAgent));
+
         return toResponse(serviceRequest);
     }
 
@@ -281,6 +321,10 @@ public class ServiceRequestService {
 
         serviceRequest = serviceRequestRepository.save(serviceRequest);
         log.info("Service request {} assigned to {}", serviceRequest.getReferenceNumber(), agent.getFullName());
+
+        // Publish REQUEST_ASSIGNED event
+        eventPublisher.publishEvent(new ServiceRequestEvent(this, serviceRequest, "REQUEST_ASSIGNED", agent, "Agent assigned by admin"));
+
         return toResponse(serviceRequest);
     }
 

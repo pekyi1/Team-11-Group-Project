@@ -23,6 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.servicehub.dto.request.UpdateNotificationPreferencesRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -115,6 +122,62 @@ public class AuthService {
     @Transactional(readOnly = true)
     public Page<UserResponse> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable).map(this::toUserResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getNotificationPreferences(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        return parseNotificationPreferences(user.getNotificationPreferences());
+    }
+
+    @Transactional
+    public Map<String, Object> updateNotificationPreferences(UUID userId, UpdateNotificationPreferencesRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        Map<String, Object> prefs = parseNotificationPreferences(user.getNotificationPreferences());
+
+        if (request.getRequestCreated() != null) {
+            prefs.put("requestCreated", request.getRequestCreated());
+        }
+        if (request.getStatusUpdates() != null) {
+            prefs.put("statusUpdates", request.getStatusUpdates());
+        }
+
+        // Critical notifications are always enabled
+        prefs.put("ticketAssigned", true);
+        prefs.put("slaWarning", true);
+        prefs.put("slaBreach", true);
+        prefs.put("transferred", true);
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            user.setNotificationPreferences(mapper.writeValueAsString(prefs));
+        } catch (JsonProcessingException e) {
+            throw new BadRequestException("Failed to serialize notification preferences");
+        }
+        userRepository.save(user);
+        return prefs;
+    }
+
+    private Map<String, Object> parseNotificationPreferences(String json) {
+        if (json == null || json.isBlank() || "{}".equals(json)) {
+            Map<String, Object> defaults = new HashMap<>();
+            defaults.put("requestCreated", true);
+            defaults.put("statusUpdates", true);
+            defaults.put("ticketAssigned", true);
+            defaults.put("slaWarning", true);
+            defaults.put("slaBreach", true);
+            defaults.put("transferred", true);
+            return defaults;
+        }
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(json, new TypeReference<Map<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            throw new BadRequestException("Failed to parse notification preferences");
+        }
     }
 
     private AuthResponse buildAuthResponse(User user) {

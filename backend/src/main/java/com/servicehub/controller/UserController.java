@@ -1,5 +1,6 @@
 package com.servicehub.controller;
 
+import com.servicehub.dto.request.UpdateNotificationPreferencesRequest;
 import com.servicehub.exception.ResourceNotFoundException;
 import com.servicehub.repository.UserRepository;
 import com.servicehub.service.AuthService;
@@ -29,6 +30,17 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {
         return ResponseEntity.ok(authService.getCurrentUser(resolveCurrentUserId()));
+    }
+
+    @GetMapping("/me/notification-preferences")
+    public ResponseEntity<?> getNotificationPreferences() {
+        return ResponseEntity.ok(authService.getNotificationPreferences(resolveCurrentUserId()));
+    }
+
+    @PutMapping("/me/notification-preferences")
+    public ResponseEntity<?> updateNotificationPreferences(
+            @RequestBody UpdateNotificationPreferencesRequest request) {
+        return ResponseEntity.ok(authService.updateNotificationPreferences(resolveCurrentUserId(), request));
     }
 
     private UUID resolveCurrentUserId() {
