@@ -50,11 +50,11 @@ public class ServiceRequest {
     @JoinColumn(name = "assigned_agent_id")
     private User assignedAgent;
 
-    @Column(name = "response_sla_deadline")
-    private LocalDateTime responseSlaDeadline;
+    @Column(name = "response_due_at")
+    private LocalDateTime responseDueAt;
 
-    @Column(name = "resolution_sla_deadline")
-    private LocalDateTime resolutionSlaDeadline;
+    @Column(name = "resolution_due_at")
+    private LocalDateTime resolutionDueAt;
 
     @Column(name = "response_sla_met")
     private Boolean responseSlaMet;
@@ -67,6 +67,10 @@ public class ServiceRequest {
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
+
+    @Column(name = "is_sla_breached", nullable = false)
+    @Builder.Default
+    private Boolean isSlaBreached = false;
 
     @Column(name = "closed_at")
     private LocalDateTime closedAt;

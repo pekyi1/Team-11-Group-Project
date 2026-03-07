@@ -42,6 +42,7 @@ public class ServiceRequestService {
     private final UserRepository userRepository;
     private final SlaPolicyRepository slaPolicyRepository;
     private final StatusHistoryRepository statusHistoryRepository;
+    private final SlaTrackingService slaTrackingService;
     private final LocationRepository locationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -83,17 +84,17 @@ public class ServiceRequestService {
                 .location(requester.getLocation())
                 .requester(requester)
                 .isDeleted(false)
+                .isSlaBreached(false)
                 .build();
 
-        // Look up SLA policy and compute deadlines
-        slaPolicyRepository.findByCategoryIdAndPriority(category.getId(), priority)
-                .ifPresent(sla -> {
-                    LocalDateTime now = LocalDateTime.now();
-                    request.setResponseSlaDeadline(now.plusMinutes(sla.getResponseTimeMinutes()));
-                    request.setResolutionSlaDeadline(now.plusMinutes(sla.getResolutionTimeMinutes()));
-                });
-
+        // Save request first to get created_at timestamp
         ServiceRequest savedRequest = serviceRequestRepository.save(request);
+
+        // Initialize SLA tracking using SlaTrackingService
+        slaTrackingService.initializeSla(savedRequest);
+        
+        // Save again to persist SLA due dates
+        savedRequest = serviceRequestRepository.save(savedRequest);
 
         // Create initial status history entry
         StatusHistory initialHistory = StatusHistory.builder()
@@ -377,6 +378,10 @@ public class ServiceRequestService {
             request.setStatus(RequestStatus.ASSIGNED);
             serviceRequestRepository.save(request);
 
+            // Record response SLA when auto-assigned
+            slaTrackingService.recordResponse(request);
+            serviceRequestRepository.save(request);
+
             StatusHistory assignHistory = StatusHistory.builder()
                     .request(request)
                     .fromStatus(RequestStatus.OPEN.name())
@@ -422,8 +427,8 @@ public class ServiceRequestService {
                 .requesterId(r.getRequester() != null ? r.getRequester().getId() : null)
                 .assignedAgentName(r.getAssignedAgent() != null ? r.getAssignedAgent().getFullName() : null)
                 .assignedAgentId(r.getAssignedAgent() != null ? r.getAssignedAgent().getId() : null)
-                .responseSlaDeadline(r.getResponseSlaDeadline())
-                .resolutionSlaDeadline(r.getResolutionSlaDeadline())
+                .responseSlaDeadline(r.getResponseDueAt())
+                .resolutionSlaDeadline(r.getResolutionDueAt())
                 .responseSlaMet(r.getResponseSlaMet())
                 .resolutionSlaMet(r.getResolutionSlaMet())
                 .respondedAt(r.getRespondedAt())
