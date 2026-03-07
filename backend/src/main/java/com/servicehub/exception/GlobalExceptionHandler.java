@@ -23,6 +23,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request);
     }
 
+    @ExceptionHandler(SlaPolicyNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleSlaPolicyNotFound(
+            SlaPolicyNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request);
+    }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(
             BadRequestException ex, HttpServletRequest request) {

@@ -1,21 +1,15 @@
 package com.servicehub.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class SlaPolicyResponse {
-
-    private Integer id;
-    private Long categoryId;
-    private String categoryName;
-    private String priority;
-    private Integer responseTimeMinutes;
-    private Integer resolutionTimeMinutes;
-    private Boolean isActive;
-}
+/**
+ * Response DTO for SLA policy operations.
+ * Uses Java Record for immutability and conciseness.
+ */
+public record SlaPolicyResponse(
+        Integer id,
+        Long categoryId,
+        String categoryName,
+        String priority,
+        Integer responseTimeHours,
+        Integer resolutionTimeHours,
+        Boolean isActive
+) {}
