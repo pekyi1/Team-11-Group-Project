@@ -2,6 +2,7 @@ target/
 .git
 .gitignore
 *.md
+project_instructions_detailed_guide.md
 .idea/
 *.iml
 .vscode/
