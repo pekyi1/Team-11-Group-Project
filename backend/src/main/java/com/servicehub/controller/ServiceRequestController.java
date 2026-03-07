@@ -5,7 +5,9 @@ import com.servicehub.dto.request.CreateServiceRequestDto;
 import com.servicehub.dto.request.StatusUpdateRequest;
 import com.servicehub.dto.request.TransferRequest;
 import com.servicehub.exception.ResourceNotFoundException;
+import com.servicehub.model.enums.RequestStatus;
 import com.servicehub.repository.UserRepository;
+import com.servicehub.service.RequestWorkflowService;
 import com.servicehub.service.ServiceRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class ServiceRequestController {
 
     private final ServiceRequestService serviceRequestService;
+    private final RequestWorkflowService requestWorkflowService;
     private final UserRepository userRepository;
 
     @GetMapping
@@ -52,7 +55,8 @@ public class ServiceRequestController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(@PathVariable Long id,
                                           @Valid @RequestBody StatusUpdateRequest request) {
-        return ResponseEntity.ok(serviceRequestService.updateStatus(id, request, resolveCurrentUserId()));
+        RequestStatus newStatus = RequestStatus.valueOf(request.newStatus().toUpperCase());
+        return ResponseEntity.ok(requestWorkflowService.updateStatus(id, newStatus, request.comment()));
     }
 
     @PostMapping("/{id}/transfer")

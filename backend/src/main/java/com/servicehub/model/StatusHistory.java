@@ -2,10 +2,14 @@ package com.servicehub.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "status_history")
+@EntityListeners(AuditingEntityListener.class)
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class StatusHistory {
 
@@ -37,11 +41,7 @@ public class StatusHistory {
     @Column(columnDefinition = "TEXT")
     private String comment;
 
-    @Column(name = "changed_at", nullable = false)
+    @CreatedDate
+    @Column(name = "changed_at", nullable = false, updatable = false)
     private LocalDateTime changedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        changedAt = LocalDateTime.now();
-    }
 }
