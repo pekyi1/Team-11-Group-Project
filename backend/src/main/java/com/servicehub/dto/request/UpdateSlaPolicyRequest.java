@@ -1,19 +1,18 @@
 package com.servicehub.dto.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Min;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UpdateSlaPolicyRequest {
-
-    private Integer responseTimeMinutes;
-
-    private Integer resolutionTimeMinutes;
-
-    private Boolean isActive;
-}
+/**
+ * Request DTO for updating an SLA policy.
+ * Uses Java Record for immutability and conciseness.
+ * All fields are optional for partial updates.
+ */
+public record UpdateSlaPolicyRequest(
+        @Min(value = 1, message = "Response time must be at least 1 hour")
+        Integer responseTimeHours,
+        
+        @Min(value = 1, message = "Resolution time must be at least 1 hour")
+        Integer resolutionTimeHours,
+        
+        Boolean isActive
+) {}
