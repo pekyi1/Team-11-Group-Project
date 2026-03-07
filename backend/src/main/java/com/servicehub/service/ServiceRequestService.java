@@ -42,6 +42,7 @@ public class ServiceRequestService {
     private final UserRepository userRepository;
     private final SlaPolicyRepository slaPolicyRepository;
     private final StatusHistoryRepository statusHistoryRepository;
+    private final StatusHistoryService statusHistoryService;
     private final LocationRepository locationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -260,24 +261,14 @@ public class ServiceRequestService {
         serviceRequest.setAssignedAgent(targetAgent);
 
         // If status was IN_PROGRESS, revert to ASSIGNED
-        String fromStatus = serviceRequest.getStatus().name();
         if (serviceRequest.getStatus() == RequestStatus.IN_PROGRESS) {
             serviceRequest.setStatus(RequestStatus.ASSIGNED);
         }
 
-        // Create status history with transfer details
-        StatusHistory history = StatusHistory.builder()
-                .request(serviceRequest)
-                .fromStatus(fromStatus)
-                .toStatus(serviceRequest.getStatus().name())
-                .changedBy(actor)
-                .fromAgent(previousAgent)
-                .toAgent(targetAgent)
-                .comment(request.getReason())
-                .build();
-        statusHistoryRepository.save(history);
-
         serviceRequest = serviceRequestRepository.save(serviceRequest);
+
+        // Record transfer in status history using StatusHistoryService
+        statusHistoryService.recordTransfer(serviceRequest, previousAgent, targetAgent, actor, request.getReason());
         log.info("Service request {} transferred from {} to {}",
                 serviceRequest.getReferenceNumber(),
                 previousAgent != null ? previousAgent.getFullName() : "none",

@@ -5,10 +5,13 @@ import com.servicehub.dto.request.CreateServiceRequestDto;
 import com.servicehub.dto.request.StatusUpdateRequest;
 import com.servicehub.dto.request.TransferRequest;
 import com.servicehub.exception.ResourceNotFoundException;
+import com.servicehub.model.User;
 import com.servicehub.model.enums.RequestStatus;
+import com.servicehub.model.enums.Role;
 import com.servicehub.repository.UserRepository;
 import com.servicehub.service.RequestWorkflowService;
 import com.servicehub.service.ServiceRequestService;
+import com.servicehub.service.StatusHistoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,7 @@ public class ServiceRequestController {
 
     private final ServiceRequestService serviceRequestService;
     private final RequestWorkflowService requestWorkflowService;
+    private final StatusHistoryService statusHistoryService;
     private final UserRepository userRepository;
 
     @GetMapping
@@ -74,7 +78,8 @@ public class ServiceRequestController {
 
     @GetMapping("/{id}/history")
     public ResponseEntity<?> getRequestHistory(@PathVariable Long id) {
-        return ResponseEntity.ok(serviceRequestService.getRequestHistory(id));
+        User currentUser = getCurrentUser();
+        return ResponseEntity.ok(statusHistoryService.getHistoryByRequestId(id, currentUser.getId(), currentUser.getRole()));
     }
 
     private UUID resolveCurrentUserId() {
@@ -82,5 +87,11 @@ public class ServiceRequestController {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email))
                 .getId();
+    }
+
+    private User getCurrentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
 }

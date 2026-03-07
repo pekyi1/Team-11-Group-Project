@@ -1,26 +1,22 @@
 package com.servicehub.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class StatusHistoryResponse {
-
-    private Long id;
-    private String fromStatus;
-    private String toStatus;
-    private String changedByName;
-    private UUID changedById;
-    private String fromAgentName;
-    private String toAgentName;
-    private String comment;
-    private LocalDateTime changedAt;
-}
+/**
+ * Response DTO for status history records.
+ * Uses Java Record for immutability and conciseness.
+ * Formats data cleanly for frontend consumption with string representations
+ * of statuses, user names, and timestamps.
+ */
+public record StatusHistoryResponse(
+        Long id,
+        String fromStatus,
+        String toStatus,
+        String changedByName,
+        UUID changedById,
+        String fromAgentName,
+        String toAgentName,
+        String comment,
+        LocalDateTime changedAt
+) {}
