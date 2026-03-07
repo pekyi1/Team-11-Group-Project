@@ -8,7 +8,6 @@ import com.servicehub.model.User;
 import com.servicehub.model.enums.RequestStatus;
 import com.servicehub.model.enums.Role;
 import com.servicehub.repository.ServiceRequestRepository;
-import com.servicehub.repository.StatusHistoryRepository;
 import com.servicehub.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,7 @@ import java.util.UUID;
 public class RequestWorkflowService {
 
     private final ServiceRequestRepository serviceRequestRepository;
-    private final StatusHistoryRepository statusHistoryRepository;
+    private final StatusHistoryService statusHistoryService;
     private final UserRepository userRepository;
     private final StatusTransitionValidator statusTransitionValidator;
 
@@ -81,15 +80,14 @@ public class RequestWorkflowService {
         // Save the updated request
         ServiceRequest savedRequest = serviceRequestRepository.save(request);
 
-        // Create status history entry
-        StatusHistory statusHistory = StatusHistory.builder()
-                .request(savedRequest)
-                .fromStatus(previousStatus)
-                .toStatus(newStatus.name())
-                .changedBy(currentUser)
-                .comment(comment)
-                .build();
-        StatusHistory savedHistory = statusHistoryRepository.save(statusHistory);
+        // Record status change in history using StatusHistoryService
+        StatusHistory savedHistory = statusHistoryService.recordStatusChange(
+                savedRequest,
+                currentStatus,
+                newStatus,
+                currentUser,
+                comment
+        );
 
         log.info("Status updated: Request {} transitioned from {} to {} by {} ({})",
                 savedRequest.getReferenceNumber(), previousStatus, newStatus, currentUser.getFullName(), userRole);
