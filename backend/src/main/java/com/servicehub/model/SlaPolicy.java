@@ -5,7 +5,20 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
-@Entity @Table(name = "sla_policies")
+/**
+ * SLA Policy entity representing time-based targets for service requests.
+ * Each policy is uniquely defined by a combination of Category and Priority.
+ */
+@Entity
+@Table(
+    name = "sla_policies",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_sla_policy_category_priority",
+            columnNames = {"category_id", "priority"}
+        )
+    }
+)
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class SlaPolicy {
 
@@ -20,11 +33,11 @@ public class SlaPolicy {
     @Column(nullable = false)
     private Priority priority;
 
-    @Column(name = "response_time_minutes", nullable = false)
-    private Integer responseTimeMinutes;
+    @Column(name = "response_time_hours", nullable = false)
+    private Integer responseTimeHours;
 
-    @Column(name = "resolution_time_minutes", nullable = false)
-    private Integer resolutionTimeMinutes;
+    @Column(name = "resolution_time_hours", nullable = false)
+    private Integer resolutionTimeHours;
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default
