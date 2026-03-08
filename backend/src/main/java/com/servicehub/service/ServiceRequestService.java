@@ -1,9 +1,6 @@
 package com.servicehub.service;
 
-import com.servicehub.dto.request.AssignAgentRequest;
-import com.servicehub.dto.request.CreateServiceRequestDto;
-import com.servicehub.dto.request.StatusUpdateRequest;
-import com.servicehub.dto.request.TransferRequest;
+import com.servicehub.dto.request.*;
 import com.servicehub.dto.response.ServiceRequestResponse;
 import com.servicehub.dto.response.StatusHistoryResponse;
 import com.servicehub.exception.BadRequestException;
@@ -103,6 +100,7 @@ public class ServiceRequestService {
                 .changedBy(requester)
                 .comment("Service request created")
                 .build();
+
         statusHistoryRepository.save(initialHistory);
 
         // Auto-route: try to find an agent in the same department
@@ -128,18 +126,24 @@ public class ServiceRequestService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ServiceRequestResponse> getAllRequests(Pageable pageable, Long categoryId,
-            String priority, String status, Long locationId, UUID requesterId, UUID assignedAgentId) {
+    public Page<ServiceRequestResponse> getAllRequests(Pageable pageable, ServiceRequestFilterDto filter) {
+        Specification<ServiceRequest> spec = buildSpecification(filter);
+        return serviceRequestRepository.findAll(spec, pageable).map(this::toResponse);
+    }
+
+    private Specification<ServiceRequest> buildSpecification(ServiceRequestFilterDto filter) {
         Specification<ServiceRequest> spec = ServiceRequestSpecification.notDeleted();
 
-        if (categoryId != null) spec = spec.and(ServiceRequestSpecification.hasCategoryId(categoryId));
-        if (priority != null) spec = spec.and(ServiceRequestSpecification.hasPriority(priority));
-        if (status != null) spec = spec.and(ServiceRequestSpecification.hasStatus(status));
-        if (locationId != null) spec = spec.and(ServiceRequestSpecification.hasLocationId(locationId));
-        if (requesterId != null) spec = spec.and(ServiceRequestSpecification.hasRequesterId(requesterId));
-        if (assignedAgentId != null) spec = spec.and(ServiceRequestSpecification.hasAssignedAgentId(assignedAgentId));
+        if (filter == null) return spec;
 
-        return serviceRequestRepository.findAll(spec, pageable).map(this::toResponse);
+        if (filter.getCategoryId() != null) spec = spec.and(ServiceRequestSpecification.hasCategoryId(filter.getCategoryId()));
+        if (filter.getPriority() != null) spec = spec.and(ServiceRequestSpecification.hasPriority(filter.getPriority()));
+        if (filter.getStatus() != null) spec = spec.and(ServiceRequestSpecification.hasStatus(filter.getStatus()));
+        if (filter.getLocationId() != null) spec = spec.and(ServiceRequestSpecification.hasLocationId(filter.getLocationId()));
+        if (filter.getRequesterId() != null) spec = spec.and(ServiceRequestSpecification.hasRequesterId(filter.getRequesterId()));
+        if (filter.getAssignedAgentId() != null) spec = spec.and(ServiceRequestSpecification.hasAssignedAgentId(filter.getAssignedAgentId()));
+
+        return spec;
     }
 
     @Transactional
@@ -434,17 +438,17 @@ public class ServiceRequestService {
                 .build();
     }
 
-    private StatusHistoryResponse toHistoryResponse(StatusHistory h) {
+    private StatusHistoryResponse toHistoryResponse(StatusHistory history) {
         return StatusHistoryResponse.builder()
-                .id(h.getId())
-                .fromStatus(h.getFromStatus())
-                .toStatus(h.getToStatus())
-                .changedByName(h.getChangedBy() != null ? h.getChangedBy().getFullName() : null)
-                .changedById(h.getChangedBy() != null ? h.getChangedBy().getId() : null)
-                .fromAgentName(h.getFromAgent() != null ? h.getFromAgent().getFullName() : null)
-                .toAgentName(h.getToAgent() != null ? h.getToAgent().getFullName() : null)
-                .comment(h.getComment())
-                .changedAt(h.getChangedAt())
+                .id(history.getId())
+                .fromStatus(history.getFromStatus())
+                .toStatus(history.getToStatus())
+                .changedByName(history.getChangedBy() != null ? history.getChangedBy().getFullName() : null)
+                .changedById(history.getChangedBy() != null ? history.getChangedBy().getId() : null)
+                .fromAgentName(history.getFromAgent() != null ? history.getFromAgent().getFullName() : null)
+                .toAgentName(history.getToAgent() != null ? history.getToAgent().getFullName() : null)
+                .comment(history.getComment())
+                .changedAt(history.getChangedAt())
                 .build();
     }
 }
