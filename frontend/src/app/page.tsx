@@ -1,12 +1,33 @@
-export default function Home() {
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getAccessToken, getRoleDashboardPath, getStoredUser } from '@/lib/auth';
+
+export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = getAccessToken();
+    const user = getStoredUser();
+
+    if (token && user) {
+      // Redirect authenticated user to their role-based dashboard
+      const dashboardPath = getRoleDashboardPath(user.role);
+      router.push(dashboardPath);
+    } else {
+      // Redirect unauthenticated user to login
+      router.push('/login');
+    }
+  }, [router]);
+
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>ServiceHub</h1>
-      <p>Internal Service Request &amp; Ticketing System</p>
-      <p>
-        API:{" "}
-        <code>{process.env.NEXT_PUBLIC_API_URL ?? "not configured"}</code>
-      </p>
-    </main>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <p>Loading...</p>
+      </div>
+    </div>
   );
 }
+
+
