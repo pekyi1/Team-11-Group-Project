@@ -1,9 +1,6 @@
 package com.servicehub.controller;
 
-import com.servicehub.dto.request.AssignAgentRequest;
-import com.servicehub.dto.request.CreateServiceRequestDto;
-import com.servicehub.dto.request.StatusUpdateRequest;
-import com.servicehub.dto.request.TransferRequest;
+import com.servicehub.dto.request.*;
 import com.servicehub.exception.ResourceNotFoundException;
 import com.servicehub.repository.UserRepository;
 import com.servicehub.service.ServiceRequestService;
@@ -27,15 +24,10 @@ public class ServiceRequestController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public ResponseEntity<?> getAllRequests(Pageable pageable,
-                                           @RequestParam(required = false) Long categoryId,
-                                           @RequestParam(required = false) String priority,
-                                           @RequestParam(required = false) String status,
-                                           @RequestParam(required = false) Long locationId,
-                                           @RequestParam(required = false) UUID requesterId,
-                                           @RequestParam(required = false) UUID assignedAgentId) {
-        return ResponseEntity.ok(serviceRequestService.getAllRequests(
-                pageable, categoryId, priority, status, locationId, requesterId, assignedAgentId));
+    public ResponseEntity<?> getAllRequests(Pageable pageable, @RequestParam(required = false) ServiceRequestFilterDto filter) {
+        var serviceRequest = serviceRequestService.getAllRequests(pageable, filter);
+
+        return ResponseEntity.ok(serviceRequest);
     }
 
     @PostMapping
